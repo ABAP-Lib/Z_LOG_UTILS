@@ -54,6 +54,12 @@ public section.
   class-methods MOSTRAR_RESULTADOS_BAPI
     importing
       !PTI_RESULTADOS type BAPIRET2_T .
+  class-METHODS:
+    create_log_from_sy_or_bapi
+        importing
+            PTI_RESULTADOS type BAPIRET2_T OPTIONAL
+        RETURNING
+            VALUE(rv_result) TYPE REF TO zcl_log_utils.
   class-methods get_last_message_text_BAPI
     importing
       !it_messages type BAPIRET2_T
@@ -256,26 +262,24 @@ method EMPTY.
 
 endmethod.
 
-
-method MOSTRAR_RESULTADOS_BAPI.
+METHOD create_log_from_sy_or_bapi.
 
   FIELD-SYMBOLS:
     <LE_RESULTADO> TYPE BAPIRET2.
 
-  DATA:
-    LV_LOG TYPE REF TO ZCL_LOG_UTILS.
+  CREATE OBJECT rv_result.
+
+    if PTI_RESULTADOS is INITIAL.
+
+        rv_result->add_message( ).
+
+        RETURN.
+
+    ENDIF.
 
   LOOP AT PTI_RESULTADOS ASSIGNING <LE_RESULTADO>.
 
-    AT FIRST.
-
-      CREATE OBJECT LV_LOG
-        EXPORTING
-          iv_title = 'Resultados llamada BAPI'.
-
-    ENDAT.
-
-    CALL METHOD LV_LOG->ADD_MESSAGE
+    CALL METHOD rv_result->ADD_MESSAGE
       EXPORTING
         iv_class       = <LE_RESULTADO>-ID
         iv_number      = <LE_RESULTADO>-NUMBER
@@ -286,13 +290,17 @@ method MOSTRAR_RESULTADOS_BAPI.
         PVI_PARAMETRO_4 = <LE_RESULTADO>-MESSAGE_V4
         .
 
-    AT LAST.
-
-      LV_LOG->DISPLAY( ).
-
-    ENDAT.
-
   ENDLOOP.
+
+ENDMETHOD.
+
+method MOSTRAR_RESULTADOS_BAPI.
+
+    CHECK pti_resultados is NOT INITIAL.
+
+    DATA(lv_log) = create_log_from_sy_or_bapi( pti_resultados ).
+
+    LV_LOG->DISPLAY( ).
 
 endmethod.
 
